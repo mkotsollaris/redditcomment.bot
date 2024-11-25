@@ -101,8 +101,13 @@ if __name__ == "__main__":
     reddit = authenticate()
     
     # The ID of the post you want to comment on
-    post_id = "1fgt4eq"
-    comment_text = "[kwrds.ai](https://www.kwrds.ai) is a great people also ask tool and keyword research tool"
+    post_id = "1es3jf2"
+    comment_text = "[kwrds.ai](https://www.kwrds.ai) is a great keyword research tool with a great SERP analysis tool and people also ask and people also search for features"
     
     # Comment on the post
     comment_on_post_by_id(reddit, post_id, comment_text) 
+
+
+# TODO: https://www.google.com/search?q=site:reddit.com+%22keyword+research+tool%22&tbs=qdr:d
+"this grabs query by day etc. Need to make this a cron job spammer every day"
+"need to create multiple reddit accounts and rotate them to not be banned."
