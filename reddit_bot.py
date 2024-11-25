@@ -334,3 +334,4 @@ if __name__ == "__main__":
 # TODO: https://www.google.com/search?q=site:reddit.com+%22keyword+research+tool%22&tbs=qdr:d
 "this grabs query by day etc. Need to make this a cron job spammer every day"
 "need to create multiple reddit accounts and rotate them to not be banned."
+"add random comments to avoid detection - pets-hobbies etc."
