@@ -189,6 +189,7 @@ def extract_post_id_from_url(url):
 def get_search_queries():
     """Return a list of search queries to target different keywords"""
     return [
+        # Original queries
         'site:reddit.com "people also ask tool"',
         'site:reddit.com "people also ask"',
         'site:reddit.com "keyword research tool"',
@@ -199,9 +200,32 @@ def get_search_queries():
         'site:reddit.com "SEO tool"',
         'site:reddit.com "content research"',
         'site:reddit.com "search intent"',
-        'site:reddit.com "keyword difficulty"',
-        'site:reddit.com "related searches"',
+        
+        # New queries based on keyword data
+        'site:reddit.com "people also ask tools"',
+        'site:reddit.com "kwrds"',
+        'site:reddit.com "people also ask keyword research tool"',
+        'site:reddit.com "keyword volume checker"',
+        'site:reddit.com "people also asked tool"',
+        'site:reddit.com "search volume api"',
+        'site:reddit.com "keyword tool ai"',
+        'site:reddit.com "kwrds-ai"',
+        'site:reddit.com "keyword volume"',
+        'site:reddit.com "search volume tool"',
+        
+        # AI-focused queries
+        'site:reddit.com "keyword research ai"',
+        'site:reddit.com "ai seo tool"',
+        'site:reddit.com "ai keyword tool"',
+        'site:reddit.com "ai content tool"',
+        
+        # Additional variations
+        'site:reddit.com "keyword research tools"',
+        'site:reddit.com "keyword volume research"',
         'site:reddit.com "people also search for"',
+        'site:reddit.com "keyword difficulty checker"',
+        'site:reddit.com "search volume checker"',
+        'site:reddit.com "keyword research platform"',
         'site:reddit.com "keyword suggestions"',
         'site:reddit.com "keyword ideas"'
     ]
@@ -265,18 +289,28 @@ def process_serp_results(reddit, comment_variations):
     print(f"Successfully commented on {successful_comments} posts")
 
 def get_comment_variations():
-    """Return a list of natural-sounding comment variations"""
+    """Return a list of natural-sounding comment variations with AI references"""
     return [
-        "Found this [keyword research tool](https://www.kwrds.ai) pretty useful",
-        "Been using this [people also ask tool](https://www.kwrds.ai) lately",
-        "Try this [SEO tool](https://www.kwrds.ai) for keyword research",
-        "Here's a good [SERP analysis tool](https://www.kwrds.ai) I found",
-        "This [keyword tool](https://www.kwrds.ai) helped me a lot",
-        "Check out this [people also ask analyzer](https://www.kwrds.ai)",
-        "Found a neat [keyword research](https://www.kwrds.ai) tool",
-        "This [content research tool](https://www.kwrds.ai) is pretty good",
-        "Helpful [SEO research tool](https://www.kwrds.ai) right here",
-        "Try this for [keyword analysis](https://www.kwrds.ai)"
+        "Found this [AI keyword research tool](https://www.kwrds.ai) pretty useful",
+        "Been using this [AI-powered people also ask tool](https://www.kwrds.ai) lately",
+        "Try this [AI SEO tool](https://www.kwrds.ai) for keyword research",
+        "Here's a good [AI SERP keyword research tool](https://www.kwrds.ai) I found",
+        "This [AI keyword research tool](https://www.kwrds.ai) helped me a lot",
+        "Check out this [AI people also ask analyzer](https://www.kwrds.ai)",
+        "Found a neat [AI keyword research](https://www.kwrds.ai) tool",
+        "This [AI content research tool](https://www.kwrds.ai) is pretty good",
+        "Helpful [AI SEO research tool](https://www.kwrds.ai) right here",
+        "Try this [AI-driven keyword tool](https://www.kwrds.ai)",
+        "Great [AI search intent tool](https://www.kwrds.ai) I discovered",
+        "This [AI keyword analyzer](https://www.kwrds.ai) is pretty solid",
+        "Found an [AI SEO keyword research assistant](https://www.kwrds.ai) that works well",
+        "Nice [AI content optimization tool](https://www.kwrds.ai) here",
+        "Check this [AI keyword intelligence tool](https://www.kwrds.ai)",
+        "Using this [AI search analysis tool](https://www.kwrds.ai) lately",
+        "Solid [AI keyword research platform](https://www.kwrds.ai)",
+        "This [AI SEO research tool](https://www.kwrds.ai) is helpful",
+        "Found a good [AI search insights tool](https://www.kwrds.ai)",
+        "Try this [AI keyword discovery tool](https://www.kwrds.ai)"
     ]
 
 # Update the main section
@@ -287,21 +321,14 @@ if __name__ == "__main__":
     # Get comment variations
     comment_variations = get_comment_variations()
     
-    # Process SERP results immediately
-    while True:  # Infinite loop
-        try:
-            print("\nStarting new SERP processing cycle...")
-            process_serp_results(reddit, comment_variations)
-            
-            # Wait before starting next cycle (e.g., 30 seconds)
-            wait_time = 30  # 30 seconds in seconds
-            print(f"\nWaiting {wait_time} seconds before next cycle...")
-            time.sleep(wait_time)
-            
-        except Exception as e:
-            print(f"Error in main loop: {str(e)}")
-            time.sleep(300)  # 5 minute delay on error
-            continue
+    # Process SERP results once
+    try:
+        print("\nStarting SERP processing...")
+        process_serp_results(reddit, comment_variations)
+        print("\nFinished all queries. Program complete.")
+        
+    except Exception as e:
+        print(f"Error in main process: {str(e)}")
 
 
 # TODO: https://www.google.com/search?q=site:reddit.com+%22keyword+research+tool%22&tbs=qdr:d
