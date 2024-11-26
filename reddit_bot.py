@@ -194,22 +194,34 @@ def comment_on_post_by_id(reddit, post_id, comment_text):
             print("Skipping: Post not relevant to our topics")
             return False
         
-        # Updated prompt with stronger emphasis on link format
-        prompt = f"""Write a short Reddit comment about this SEO post. You MUST include exactly one markdown link to https://www.kwrds.ai by hyperlinking a relevant term.
+        # Updated prompt to encourage more varied linking
+        prompt = f"""Write a casual, helpful Reddit comment about this SEO post. Include a link to kwrds.ai naturally, as if you're a Redditor sharing a tool you use.
 
         Title: {submission.title}
         Content: {submission.selftext[:200] if submission.selftext else '[image/link post]'}
 
         Rules:
-        - REQUIRED FORMAT: Include a phrase like "[keyword research](https://www.kwrds.ai)" or "[SERP analysis](https://www.kwrds.ai)"
-        - Choose ONE of these terms to link: keyword research, SERP analysis, people also ask tool, search intent tool, content research
-        - Keep it under 2 sentences
-        - Be direct and helpful
-        - Don't mention other tools
-        - Sound natural and conversational
+        - Write like a real Redditor - casual, helpful, straight to the point
+        - Include ONE markdown link using one of these formats (prefer the first three):
+          * "[keyword research tool](https://www.kwrds.ai)"
+          * "[SERP analysis tool](https://www.kwrds.ai)"
+          * "[people also ask tool](https://www.kwrds.ai)"
+          * "[search intent tool](https://www.kwrds.ai)"
+          * Only use "[kwrds.ai](https://www.kwrds.ai)" if it fits more naturally
+        - Be genuinely helpful
+        - Keep it short and direct
+        - Don't oversell or be too formal
+        - Sound like you're sharing from experience
 
-        Example 1: "This [keyword research](https://www.kwrds.ai) tool could help you find better opportunities."
-        Example 2: "Try using a [SERP analysis](https://www.kwrds.ai) tool to understand your competition better."
+        Example good responses:
+        - "This [keyword research tool](https://www.kwrds.ai) helped me find some good long-tail opportunities."
+        - "The [SERP analysis tool](https://www.kwrds.ai) I use shows all that data in one place."
+        - "Try using a [people also ask tool](https://www.kwrds.ai) to find related topics."
+
+        Example bad responses (don't write like this):
+        - "Allow me to recommend this sophisticated tool..."
+        - "The ultimate solution to all your SEO needs..."
+        - Any overly promotional language
         """
         
         max_attempts = 3
@@ -248,45 +260,54 @@ def extract_post_id_from_url(url):
 def get_search_queries():
     """Return a list of search queries to target different keywords"""
     return [
-        # Original queries
+        # Core kwrds.ai features
         'site:reddit.com "people also ask tool"',
-        'site:reddit.com "people also ask"',
-        'site:reddit.com "keyword research tool"',
-        'site:reddit.com "keyword research"',
-        'site:reddit.com "SERP analysis"',
-        'site:reddit.com "SERP analysis tool"',
-        'site:reddit.com "keyword tool"',
-        'site:reddit.com "SEO tool"',
-        'site:reddit.com "content research"',
-        'site:reddit.com "search intent"',
-        
-        # New queries based on keyword data
-        'site:reddit.com "people also ask tools"',
-        'site:reddit.com "kwrds"',
-        'site:reddit.com "people also ask keyword research tool"',
-        'site:reddit.com "keyword volume checker"',
-        'site:reddit.com "people also asked tool"',
-        'site:reddit.com "search volume api"',
-        'site:reddit.com "keyword tool ai"',
-        'site:reddit.com "kwrds-ai"',
-        'site:reddit.com "keyword volume"',
-        'site:reddit.com "search volume tool"',
-        
-        # AI-focused queries
-        'site:reddit.com "keyword research ai"',
-        'site:reddit.com "ai seo tool"',
-        'site:reddit.com "ai keyword tool"',
-        'site:reddit.com "ai content tool"',
-        
-        # Additional variations
-        'site:reddit.com "keyword research tools"',
-        'site:reddit.com "keyword volume research"',
+        'site:reddit.com "people also ask data"',
         'site:reddit.com "people also search for"',
+        'site:reddit.com "search intent tool"',
+        'site:reddit.com "SERP analysis tool"',
+        
+        # Keyword Research
+        'site:reddit.com "keyword research tool"',
+        'site:reddit.com "AI keyword research"',
+        'site:reddit.com "keyword research automation"',
+        'site:reddit.com "best keyword research tool"',
         'site:reddit.com "keyword difficulty checker"',
-        'site:reddit.com "search volume checker"',
-        'site:reddit.com "keyword research platform"',
-        'site:reddit.com "keyword suggestions"',
-        'site:reddit.com "keyword ideas"'
+        'site:reddit.com "keyword clustering tool"',
+        'site:reddit.com "long tail keywords tool"',
+        
+        # SEO Tools
+        'site:reddit.com "SEO tool recommendation"',
+        'site:reddit.com "AI SEO tool"',
+        'site:reddit.com "SERP features tool"',
+        'site:reddit.com "search volume tool"',
+        'site:reddit.com "keyword tracking tool"',
+        
+        # Content Strategy
+        'site:reddit.com "content gap analysis"',
+        'site:reddit.com "content research tool"',
+        'site:reddit.com "topic research tool"',
+        'site:reddit.com "content optimization tool"',
+        'site:reddit.com "content strategy tool"',
+        
+        # Search Intent
+        'site:reddit.com "search intent analysis"',
+        'site:reddit.com "user intent tool"',
+        'site:reddit.com "keyword intent"',
+        'site:reddit.com "search intent optimization"',
+        
+        # Questions and PAA
+        'site:reddit.com "find question keywords"',
+        'site:reddit.com "question keyword tool"',
+        'site:reddit.com "find what people ask"',
+        'site:reddit.com "question research tool"',
+        
+        # Specific Subreddits
+        'site:reddit.com/r/SEO "keyword tool"',
+        'site:reddit.com/r/bigseo "keyword research"',
+        'site:reddit.com/r/contentmarketing "keyword research"',
+        'site:reddit.com/r/juststart "keyword research tool"',
+        'site:reddit.com/r/blogging "keyword research"'
     ]
 
 def get_random_proxy():
@@ -307,35 +328,44 @@ def get_random_proxy():
     }
 
 def get_hobby_subreddits():
-    """Return a list of hobby/casual subreddits to post in"""
+    """Return a list of hobby/casual subreddits to post in, with extra weight for cat subs"""
     return [
-        'cats', 'dogs', 'Pets', 'aww', 
-        'gardening', 'houseplants', 'IndoorGarden',
-        'cooking', 'Baking', 'food',
-        'photography', 'itookapicture', 
-        'DIY', 'crafts', 'woodworking',
-        'hiking', 'camping', 'backpacking',
-        'books', 'reading', 'booksuggestions'
+        # Cat subreddits (repeated to increase probability)
+        'cats', 'cats', 'cats',  # Triple weight for r/cats
+        'CatPics', 'CatPics',
+        'catpictures',
+        'CatsStandingUp',
+        'CatsWithJobs',
+        'IllegallySmolCats',
+        # Other pets
+        'dogs', 'Pets', 'aww',
+        # Other hobbies
+        'gardening', 'houseplants',
+        'cooking', 'food',
+        'photography', 'itookapicture',
+        'DIY', 'crafts',
+        'hiking', 'camping',
+        'books', 'reading'
     ]
 
 def get_casual_comments():
-    """Return a list of casual, non-SEO comments"""
+    """Return a list of casual comments with extra cat-focused ones"""
     return [
+        # Cat-specific comments
+        "What a beautiful kitty! How old is she/he?",
+        "Those eyes are mesmerizing! What's your cat's name?",
+        "Such a gorgeous cat! Is it a specific breed?",
+        "Adorable! My cat does the exact same thing.",
+        "That's one photogenic cat! Great shot.",
+        # General comments
         "Beautiful photo! What camera did you use?",
         "This is amazing! How long did it take you?",
         "Love this! Do you have any tips for beginners?",
         "Wow, great work! Thanks for sharing.",
-        "This is exactly what I was looking for!",
         "Really nice! What inspired you?",
-        "So cute! How old is he/she?",
         "Incredible work! Would love to learn more about your process.",
-        "This looks fantastic! Any recommendations for someone starting out?",
         "Beautiful! Where was this taken?",
-        "Great composition! Love the lighting.",
-        "This is adorable! Made my day.",
-        "Very impressive! How did you learn?",
-        "Awesome work! Keep it up!",
-        "This is so well done! Thanks for the inspiration."
+        "Very impressive! How did you learn?"
     ]
 
 def generate_engaging_comment(prompt):
@@ -406,8 +436,8 @@ def make_random_hobby_comment(reddit):
         return False
 
 def should_make_hobby_comment():
-    """Decide if we should make a hobby comment (30% chance)"""
-    return random.random() < 0.3
+    """Decide if we should make a hobby comment (increased to 70% chance)"""
+    return random.random() < 0.7  # Increased from 0.5 to 0.7
 
 def process_serp_results(reddit, comment_variations):
     """Process each SERP result immediately after finding it"""
@@ -416,12 +446,23 @@ def process_serp_results(reddit, comment_variations):
     total_posts_found = 0
     processed_urls = set()
     
+    # Start with 1-3 hobby comments
+    initial_hobby_comments = random.randint(1, 3)
+    print(f"\nMaking {initial_hobby_comments} initial hobby comments...")
+    for _ in range(initial_hobby_comments):
+        make_random_hobby_comment(reddit)
+        time.sleep(30)
+    
     for query in queries:
-        # Maybe make a hobby comment between queries
+        # Increased chance for hobby comments between queries
         if should_make_hobby_comment():
-            print("\nMaking a random hobby comment to look more natural...")
-            make_random_hobby_comment(reddit)
-            time.sleep(10)
+            # Sometimes make multiple hobby comments
+            num_comments = random.choices([1, 2], weights=[0.7, 0.3])[0]
+            for _ in range(num_comments):
+                print("\nMaking a random hobby comment to look more natural...")
+                make_random_hobby_comment(reddit)
+                print("Waiting 30 seconds after hobby comment...")
+                time.sleep(30)
         
         encoded_query = requests.utils.quote(query)
         search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:w"
@@ -586,6 +627,4 @@ if __name__ == "__main__":
 
 
 # TODO: https://www.google.com/search?q=site:reddit.com+%22keyword+research+tool%22&tbs=qdr:d
-"this grabs query by day etc. Need to make this a cron job spammer every day"
-"need to create multiple reddit accounts and rotate them to not be banned."
-"add random comments to avoid detection - pets-hobbies etc."
+"add multiple accounts and rotate"
