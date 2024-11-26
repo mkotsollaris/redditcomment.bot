@@ -165,21 +165,54 @@ def is_post_relevant(submission):
     
     return is_relevant
 
+def confirm_comment(subreddit, title, comment_text, post_url=None):
+    """Ask for confirmation before posting a comment"""
+    print("\n=== Comment Confirmation ===")
+    print(f"Subreddit: r/{subreddit}")
+    print(f"Post: {title}")
+    if post_url:
+        print(f"URL: https://reddit.com{post_url}")  # Reddit URLs are relative paths
+    print(f"Comment: {comment_text}")
+    print("\nPress 'y' to confirm, any other key to skip: ")
+    
+    confirmation = input().lower()
+    return confirmation == 'y'
+
 def comment_on_post_by_id(reddit, post_id, comment_text):
     try:
         submission = reddit.submission(id=post_id)
         
-        # Check if we've already commented
         if has_existing_comment(submission, reddit):
             print("Skipping: Already commented on this post")
             return False
         
-        # Check relevance
         if not is_post_relevant(submission):
             print("Skipping: Post not relevant to our topics")
             return False
         
-        # Make the comment
+        # Updated prompt to encourage linking different keywords
+        prompt = f"""Write a short, natural Reddit comment about this SEO post. Include a link to kwrds.ai by hyperlinking a relevant term like [keyword research](https://www.kwrds.ai) or [SERP analysis](https://www.kwrds.ai) or [people also ask tool](https://www.kwrds.ai). Keep it under 2 sentences:
+
+        Title: {submission.title}
+        Content: {submission.selftext[:200] if submission.selftext else '[image/link post]'}
+
+        Rules:
+        - Must include ONE link to https://www.kwrds.ai by hyperlinking a relevant term
+        - Use terms like: keyword research, SERP analysis, people also ask tool, search intent tool, content research
+        - Keep it under 2 sentences
+        - Be direct and helpful
+        - Don't mention other tools
+        - Sound natural and conversational"""
+        
+        comment_text = generate_engaging_comment(prompt)
+        if not comment_text:
+            return False
+            
+        # Ask for confirmation before posting
+        if not confirm_comment(submission.subreddit.display_name, submission.title, comment_text, submission.permalink):
+            print("Comment skipped by user")
+            return False
+            
         submission.reply(comment_text)
         print(f"Successfully commented on post: {submission.title}")
         return True
@@ -290,26 +323,65 @@ def get_casual_comments():
         "This is so well done! Thanks for the inspiration."
     ]
 
+def generate_engaging_comment(prompt):
+    """Generate an engaging comment using Ollama's Llama3.2"""
+    try:
+        response = requests.post('http://localhost:11434/api/generate',
+            json={
+                'model': 'llama3.2',
+                'prompt': prompt,
+                'stream': False,
+                'options': {
+                    'temperature': 0.7,
+                    'top_k': 50,
+                    'top_p': 0.9,
+                    'max_length': 100
+                }
+            }
+        )
+        if response.status_code == 200:
+            # Clean up the response by removing unnecessary quotes
+            comment = response.json()['response'].strip()
+            comment = comment.strip('"')  # Remove surrounding quotes
+            comment = comment.replace('\"', '')  # Remove any remaining quotes
+            return comment
+        return None
+    except Exception as e:
+        print(f"Error generating comment: {str(e)}")
+        return None
+
 def make_random_hobby_comment(reddit):
     """Make a random comment in a hobby subreddit"""
     try:
-        # Pick a random subreddit
         subreddit_name = random.choice(get_hobby_subreddits())
         subreddit = reddit.subreddit(subreddit_name)
         
-        # Get hot posts
         hot_posts = list(subreddit.hot(limit=20))
         post = random.choice(hot_posts)
         
-        # Check if we've already commented
         if has_existing_comment(post, reddit):
             print(f"Already commented in this post in r/{subreddit_name}")
             return False
         
-        # Make the comment
-        comment_text = random.choice(get_casual_comments())
+        # Generate contextual comment based on post title and content
+        prompt = f"""Write a short, friendly Reddit comment (1-2 sentences) for this post:
+        Subreddit: {subreddit_name}
+        Title: {post.title}
+        Content: {post.selftext[:200] if post.selftext else '[image/link post]'}
+        
+        Make it casual and engaging, like a real Reddit user. Don't be overly formal or use emojis."""
+        
+        comment_text = generate_engaging_comment(prompt)
+        if not comment_text:
+            comment_text = random.choice(get_casual_comments())
+        
+        # Ask for confirmation before posting
+        if not confirm_comment(subreddit_name, post.title, comment_text, post.permalink):  # Use permalink instead of url
+            print("Comment skipped by user")
+            return False
+            
         post.reply(comment_text)
-        print(f"Made casual comment in r/{subreddit_name}: {comment_text}")
+        print(f"Made AI-generated comment in r/{subreddit_name}: {comment_text}")
         return True
         
     except Exception as e:
@@ -332,7 +404,7 @@ def process_serp_results(reddit, comment_variations):
         if should_make_hobby_comment():
             print("\nMaking a random hobby comment to look more natural...")
             make_random_hobby_comment(reddit)
-            time.sleep(random.randint(300, 900))  # Wait 5-15 minutes
+            time.sleep(10)
         
         encoded_query = requests.utils.quote(query)
         search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:w"
@@ -417,7 +489,7 @@ def process_serp_results(reddit, comment_variations):
                             successful_comments += 1
                             comments_this_query += 1
                             print(f"Successfully commented on post {post_id}")
-                            time.sleep(15)
+                            time.sleep(10)
             
             if reddit_posts_found > 0:
                 print(f"Query results: Found {reddit_posts_found} posts, successfully commented on {comments_this_query}")
