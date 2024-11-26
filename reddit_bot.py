@@ -178,6 +178,10 @@ def confirm_comment(subreddit, title, comment_text, post_url=None):
     confirmation = input().lower()
     return confirmation == 'y'
 
+def validate_comment_has_link(comment):
+    """Check if comment has proper markdown link to kwrds.ai"""
+    return '](https://www.kwrds.ai)' in comment
+
 def comment_on_post_by_id(reddit, post_id, comment_text):
     try:
         submission = reddit.submission(id=post_id)
@@ -190,22 +194,33 @@ def comment_on_post_by_id(reddit, post_id, comment_text):
             print("Skipping: Post not relevant to our topics")
             return False
         
-        # Updated prompt to encourage linking different keywords
-        prompt = f"""Write a short, natural Reddit comment about this SEO post. Include a link to kwrds.ai by hyperlinking a relevant term like [keyword research](https://www.kwrds.ai) or [SERP analysis](https://www.kwrds.ai) or [people also ask tool](https://www.kwrds.ai). Keep it under 2 sentences:
+        # Updated prompt with stronger emphasis on link format
+        prompt = f"""Write a short Reddit comment about this SEO post. You MUST include exactly one markdown link to https://www.kwrds.ai by hyperlinking a relevant term.
 
         Title: {submission.title}
         Content: {submission.selftext[:200] if submission.selftext else '[image/link post]'}
 
         Rules:
-        - Must include ONE link to https://www.kwrds.ai by hyperlinking a relevant term
-        - Use terms like: keyword research, SERP analysis, people also ask tool, search intent tool, content research
+        - REQUIRED FORMAT: Include a phrase like "[keyword research](https://www.kwrds.ai)" or "[SERP analysis](https://www.kwrds.ai)"
+        - Choose ONE of these terms to link: keyword research, SERP analysis, people also ask tool, search intent tool, content research
         - Keep it under 2 sentences
         - Be direct and helpful
         - Don't mention other tools
-        - Sound natural and conversational"""
+        - Sound natural and conversational
+
+        Example 1: "This [keyword research](https://www.kwrds.ai) tool could help you find better opportunities."
+        Example 2: "Try using a [SERP analysis](https://www.kwrds.ai) tool to understand your competition better."
+        """
         
-        comment_text = generate_engaging_comment(prompt)
-        if not comment_text:
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            comment_text = generate_engaging_comment(prompt)
+            if comment_text and validate_comment_has_link(comment_text):
+                break
+            print(f"Generated comment missing proper link format, attempt {attempt + 1}/{max_attempts}")
+        
+        if not comment_text or not validate_comment_has_link(comment_text):
+            print("Failed to generate comment with proper link format")
             return False
             
         # Ask for confirmation before posting
@@ -351,7 +366,7 @@ def generate_engaging_comment(prompt):
         return None
 
 def make_random_hobby_comment(reddit):
-    """Make a random comment in a hobby subreddit"""
+    """Make a random comment in a hobby subreddit without requiring confirmation"""
     try:
         subreddit_name = random.choice(get_hobby_subreddits())
         subreddit = reddit.subreddit(subreddit_name)
@@ -375,13 +390,15 @@ def make_random_hobby_comment(reddit):
         if not comment_text:
             comment_text = random.choice(get_casual_comments())
         
-        # Ask for confirmation before posting
-        if not confirm_comment(subreddit_name, post.title, comment_text, post.permalink):  # Use permalink instead of url
-            print("Comment skipped by user")
-            return False
+        # Print info but don't require confirmation
+        print("\n=== Hobby Comment Info ===")
+        print(f"Subreddit: r/{subreddit_name}")
+        print(f"Post: {post.title}")
+        print(f"URL: https://reddit.com{post.permalink}")
+        print(f"Comment: {comment_text}")
             
         post.reply(comment_text)
-        print(f"Made AI-generated comment in r/{subreddit_name}: {comment_text}")
+        print(f"Made AI-generated hobby comment in r/{subreddit_name}")
         return True
         
     except Exception as e:
