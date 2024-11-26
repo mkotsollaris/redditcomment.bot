@@ -11,6 +11,9 @@ import random
 # File to store the refresh token
 REFRESH_TOKEN_FILE = "refresh_token.pkl"
 
+# Add at the top of the file with other globals
+COMMENTED_POSTS = set()  # Track all posts we've commented on
+
 def save_refresh_token(refresh_token):
     with open(REFRESH_TOKEN_FILE, 'wb') as f:
         pickle.dump(refresh_token, f)
@@ -92,13 +95,21 @@ def authenticate():
         print("Please try again with a fresh authorization URL")
         raise
 
-def has_existing_kwrds_comment(submission):
-    submission.comments.replace_more(limit=None)  # Load all comments
-    for comment in submission.comments.list():
-        if "kwrds.ai" in comment.body.lower():
-            print(f"Found existing kwrds.ai comment: {comment.body}")
-            return True
-    return False
+def has_existing_comment(submission, reddit):
+    """Check if we've already commented on this submission"""
+    try:
+        submission.comments.replace_more(limit=0)
+        my_username = reddit.user.me().name
+        
+        for comment in submission.comments.list():
+            if comment.author and comment.author.name == my_username:
+                print(f"Found existing comment by {my_username}")
+                return True
+        return False
+        
+    except Exception as e:
+        print(f"Error checking existing comments: {str(e)}")
+        return True  # Safer to return True on error
 
 def is_post_relevant(submission):
     """Check if the post is relevant to our topics"""
@@ -158,17 +169,17 @@ def comment_on_post_by_id(reddit, post_id, comment_text):
     try:
         submission = reddit.submission(id=post_id)
         
-        # Check relevance first
+        # Check if we've already commented
+        if has_existing_comment(submission, reddit):
+            print("Skipping: Already commented on this post")
+            return False
+        
+        # Check relevance
         if not is_post_relevant(submission):
             print("Skipping: Post not relevant to our topics")
             return False
         
-        # Check for existing kwrds.ai comments
-        if has_existing_kwrds_comment(submission):
-            print("Skipping: Post already has a kwrds.ai comment")
-            return False
-        
-        # If post is relevant and has no existing comment, post new comment
+        # Make the comment
         submission.reply(comment_text)
         print(f"Successfully commented on post: {submission.title}")
         return True
@@ -230,31 +241,162 @@ def get_search_queries():
         'site:reddit.com "keyword ideas"'
     ]
 
+def get_random_proxy():
+    """Get a random proxy from the list and format it properly"""
+    prox_list = [
+        'geo.iproyal.com:12321:raVWrZ8duQaStI6t:r79i2q51TaQHYmy1_country-us',
+        'us.smartproxy.com:10000:sprkucstlr:gd3patxyW6Dln73YpG',
+        'pr.oxylabs.io:7777:kwrds_ai_mk:fLeYms_pd_d6PA2',
+        'brd.superproxy.io:22225:brd-customer-hl_5a8e7459-zone-kwrz_residential_rotating:d48umurinii2'
+    ]
+    
+    proxy = random.choice(prox_list)
+    host, port, user, password = proxy.split(':')
+    
+    return {
+        'http': f'http://{user}:{password}@{host}:{port}',
+        'https': f'http://{user}:{password}@{host}:{port}'
+    }
+
+def get_hobby_subreddits():
+    """Return a list of hobby/casual subreddits to post in"""
+    return [
+        'cats', 'dogs', 'Pets', 'aww', 
+        'gardening', 'houseplants', 'IndoorGarden',
+        'cooking', 'Baking', 'food',
+        'photography', 'itookapicture', 
+        'DIY', 'crafts', 'woodworking',
+        'hiking', 'camping', 'backpacking',
+        'books', 'reading', 'booksuggestions'
+    ]
+
+def get_casual_comments():
+    """Return a list of casual, non-SEO comments"""
+    return [
+        "Beautiful photo! What camera did you use?",
+        "This is amazing! How long did it take you?",
+        "Love this! Do you have any tips for beginners?",
+        "Wow, great work! Thanks for sharing.",
+        "This is exactly what I was looking for!",
+        "Really nice! What inspired you?",
+        "So cute! How old is he/she?",
+        "Incredible work! Would love to learn more about your process.",
+        "This looks fantastic! Any recommendations for someone starting out?",
+        "Beautiful! Where was this taken?",
+        "Great composition! Love the lighting.",
+        "This is adorable! Made my day.",
+        "Very impressive! How did you learn?",
+        "Awesome work! Keep it up!",
+        "This is so well done! Thanks for the inspiration."
+    ]
+
+def make_random_hobby_comment(reddit):
+    """Make a random comment in a hobby subreddit"""
+    try:
+        # Pick a random subreddit
+        subreddit_name = random.choice(get_hobby_subreddits())
+        subreddit = reddit.subreddit(subreddit_name)
+        
+        # Get hot posts
+        hot_posts = list(subreddit.hot(limit=20))
+        post = random.choice(hot_posts)
+        
+        # Check if we've already commented
+        if has_existing_comment(post, reddit):
+            print(f"Already commented in this post in r/{subreddit_name}")
+            return False
+        
+        # Make the comment
+        comment_text = random.choice(get_casual_comments())
+        post.reply(comment_text)
+        print(f"Made casual comment in r/{subreddit_name}: {comment_text}")
+        return True
+        
+    except Exception as e:
+        print(f"Error making hobby comment: {str(e)}")
+        return False
+
+def should_make_hobby_comment():
+    """Decide if we should make a hobby comment (30% chance)"""
+    return random.random() < 0.3
+
 def process_serp_results(reddit, comment_variations):
     """Process each SERP result immediately after finding it"""
     queries = get_search_queries()
     successful_comments = 0
     total_posts_found = 0
-    processed_urls = set()  # Keep track of URLs we've already processed
+    processed_urls = set()
     
     for query in queries:
+        # Maybe make a hobby comment between queries
+        if should_make_hobby_comment():
+            print("\nMaking a random hobby comment to look more natural...")
+            make_random_hobby_comment(reddit)
+            time.sleep(random.randint(300, 900))  # Wait 5-15 minutes
+        
         encoded_query = requests.utils.quote(query)
-        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:d"
+        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:w"
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
+        # Try up to 3 different proxies for each query
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"\nSearching for: {query}")
+                print(f"Google URL: {search_url}")
+                print(f"Attempt {attempt + 1} of {max_retries}")
+                
+                # Get random proxy for this request
+                proxies = get_random_proxy()
+                print(f"Using proxy: {proxies['http'].split('@')[1]}")
+                
+                response = requests.get(
+                    search_url, 
+                    headers=headers, 
+                    proxies=proxies,
+                    timeout=5
+                )
+                print(f"Response status code: {response.status_code}")
+                
+                if response.status_code != 200:
+                    raise Exception(f"Bad status code: {response.status_code}")
+                
+                # If we get here, the request was successful
+                break
+                
+            except Exception as e:
+                print(f"Proxy attempt {attempt + 1} failed: {str(e)}")
+                if attempt == max_retries - 1:  # Last attempt
+                    print("All proxy attempts failed, skipping query")
+                    continue
+                time.sleep(5)  # Short delay before trying next proxy
+        else:
+            # If we get here, all retries failed
+            continue
+            
         try:
-            print(f"\nSearching for: {query}")
-            print(f"Google URL: {search_url}")
-            response = requests.get(search_url, headers=headers)
             soup = BeautifulSoup(response.text, 'html.parser')
+            all_links = soup.find_all('a')
+            reddit_links = [link for link in all_links if 'reddit.com/r/' in str(link.get('href', ''))]
+            
+            if len(reddit_links) == 0:
+                print("No Reddit posts found for this query")
+                print(f"Waiting before next search query...")
+                time.sleep(10)
+                continue
+            
+            print(f"Found {len(reddit_links)} Reddit links")
             
             # Process each result immediately
-            for result in soup.find_all('a'):
+            reddit_posts_found = 0
+            comments_this_query = 0
+            for result in all_links:
                 href = result.get('href', '')
                 if 'reddit.com/r/' in href and '/comments/' in href:
+                    reddit_posts_found += 1
                     clean_url = href.split('/url?q=')[1].split('&')[0] if '/url?q=' in href else href
                     
                     # Skip if we've already processed this URL
@@ -264,6 +406,7 @@ def process_serp_results(reddit, comment_variations):
                     
                     processed_urls.add(clean_url)
                     total_posts_found += 1
+                    print(f"Found Reddit post: {clean_url}")
                     
                     # Process the post immediately
                     post_id = extract_post_id_from_url(clean_url)
@@ -272,21 +415,31 @@ def process_serp_results(reddit, comment_variations):
                         comment_text = random.choice(comment_variations)
                         if comment_on_post_by_id(reddit, post_id, comment_text):
                             successful_comments += 1
-                            # Add delay between comments
-                            time.sleep(15)  # 15 second delay between comments
+                            comments_this_query += 1
+                            print(f"Successfully commented on post {post_id}")
+                            time.sleep(15)
             
-            # Add delay between SERP queries
+            if reddit_posts_found > 0:
+                print(f"Query results: Found {reddit_posts_found} posts, successfully commented on {comments_this_query}")
+                print(f"Running totals: Found {total_posts_found} posts, commented on {successful_comments}")
+            
             print(f"Waiting before next search query...")
-            time.sleep(30)  # 30 second delay between searches
+            time.sleep(10)
             
         except Exception as e:
             print(f"Error processing query '{query}': {str(e)}")
-            time.sleep(60)  # Longer delay if there's an error
+            print(f"Full error: {str(e.__class__.__name__)}: {str(e)}")
+            time.sleep(60)
             continue
     
     print(f"\nFinished processing all queries")
-    print(f"Total posts found: {total_posts_found}")
-    print(f"Successfully commented on {successful_comments} posts")
+    if total_posts_found > 0:
+        print(f"Final results:")
+        print(f"Total posts found: {total_posts_found}")
+        print(f"Successfully commented on: {successful_comments}")
+        print(f"Success rate: {(successful_comments/total_posts_found)*100:.1f}%")
+    else:
+        print("No posts were found during this run")
 
 def get_comment_variations():
     """Return a list of natural-sounding comment variations with AI references"""
@@ -321,10 +474,22 @@ if __name__ == "__main__":
     # Get comment variations
     comment_variations = get_comment_variations()
     
-    # Process SERP results once
+    # Maybe start with a hobby comment
+    if should_make_hobby_comment():
+        print("\nStarting with a casual hobby comment...")
+        make_random_hobby_comment(reddit)
+        time.sleep(15)  # Wait 5-10 minutes
+    
+    # Process SERP results
     try:
         print("\nStarting SERP processing...")
         process_serp_results(reddit, comment_variations)
+        
+        # Maybe end with a hobby comment
+        if should_make_hobby_comment():
+            print("\nEnding with a casual hobby comment...")
+            make_random_hobby_comment(reddit)
+            
         print("\nFinished all queries. Program complete.")
         
     except Exception as e:
