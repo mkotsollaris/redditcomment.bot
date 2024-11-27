@@ -7,12 +7,29 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import random
+import signal
+from contextlib import contextmanager
 
 # File to store the refresh token
 REFRESH_TOKEN_FILE = "refresh_token.pkl"
 
 # Add at the top of the file with other globals
 COMMENTED_POSTS = set()  # Track all posts we've commented on
+
+@contextmanager
+def timeout(seconds):
+    def timeout_handler(signum, frame):
+        raise TimeoutError("Input timed out")
+    
+    # Set the timeout handler
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(seconds)
+    
+    try:
+        yield
+    finally:
+        # Disable the alarm
+        signal.alarm(0)
 
 def save_refresh_token(refresh_token):
     with open(REFRESH_TOKEN_FILE, 'wb') as f:
@@ -174,9 +191,15 @@ def confirm_comment(subreddit, title, comment_text, post_url=None):
         if post_url:
             print(f"URL: https://reddit.com{post_url}")
         print(f"Comment: {comment_text}")
-        print("\nPress 'y' to confirm, 'r' to regenerate, any other key to skip: ")
+        print("\nPress 'y' to confirm, 'r' to regenerate, any other key to skip (60s timeout = confirm): ")
         
-        confirmation = input().lower()
+        try:
+            with timeout(60):
+                confirmation = input().lower()
+        except TimeoutError:
+            print("\nInput timed out - automatically confirming comment")
+            return True, comment_text
+        
         if confirmation == 'y':
             return True, comment_text
         elif confirmation == 'r':
@@ -310,47 +333,84 @@ def get_search_queries():
         'site:reddit.com "search intent tool"',
         'site:reddit.com "SERP analysis tool"',
         
-        # Keyword Research
+        # New PAA-specific queries
+        'site:reddit.com "how to find question keywords"',
+        'site:reddit.com "question keyword research"',
+        'site:reddit.com "find user questions"',
+        'site:reddit.com "question based content"',
+        'site:reddit.com "question keyword tool"',
+        
+        # Search Intent focused
+        'site:reddit.com "understand search intent"',
+        'site:reddit.com "search intent analysis"',
+        'site:reddit.com "user intent research"',
+        'site:reddit.com "keyword intent tool"',
+        'site:reddit.com "content intent"',
+        
+        # SERP Features
+        'site:reddit.com "SERP feature analysis"',
+        'site:reddit.com "SERP position tracking"',
+        'site:reddit.com "SERP competition analysis"',
+        'site:reddit.com "featured snippet optimization"',
+        'site:reddit.com "rich results seo"',
+        
+        # Existing Keyword Research
         'site:reddit.com "keyword research tool"',
         'site:reddit.com "AI keyword research"',
         'site:reddit.com "keyword research automation"',
         'site:reddit.com "best keyword research tool"',
         'site:reddit.com "keyword difficulty checker"',
-        'site:reddit.com "keyword clustering tool"',
-        'site:reddit.com "long tail keywords tool"',
-        
-        # SEO Tools
-        'site:reddit.com "SEO tool recommendation"',
-        'site:reddit.com "AI SEO tool"',
-        'site:reddit.com "SERP features tool"',
-        'site:reddit.com "search volume tool"',
-        'site:reddit.com "keyword tracking tool"',
         
         # Content Strategy
         'site:reddit.com "content gap analysis"',
         'site:reddit.com "content research tool"',
-        'site:reddit.com "topic research tool"',
         'site:reddit.com "content optimization tool"',
         'site:reddit.com "content strategy tool"',
+        'site:reddit.com "content planning tool"',
         
-        # Search Intent
-        'site:reddit.com "search intent analysis"',
-        'site:reddit.com "user intent tool"',
-        'site:reddit.com "keyword intent"',
-        'site:reddit.com "search intent optimization"',
+        # Specific Subreddits with topic focus
+        'site:reddit.com/r/SEO "question research"',
+        'site:reddit.com/r/bigseo "search intent"',
+        'site:reddit.com/r/contentmarketing "people also ask"',
+        'site:reddit.com/r/juststart "keyword research"',
+        'site:reddit.com/r/blogging "content research"',
+        'site:reddit.com/r/marketing "SEO tools"',
         
-        # Questions and PAA
-        'site:reddit.com "find question keywords"',
-        'site:reddit.com "question keyword tool"',
-        'site:reddit.com "find what people ask"',
-        'site:reddit.com "question research tool"',
+        # AI SEO specific
+        'site:reddit.com "AI content optimization"',
+        'site:reddit.com "AI SEO tool"',
+        'site:reddit.com "AI keyword analysis"',
+        'site:reddit.com "machine learning SEO"',
+        'site:reddit.com "AI content research"',
         
-        # Specific Subreddits
-        'site:reddit.com/r/SEO "keyword tool"',
-        'site:reddit.com/r/bigseo "keyword research"',
-        'site:reddit.com/r/contentmarketing "keyword research"',
-        'site:reddit.com/r/juststart "keyword research tool"',
-        'site:reddit.com/r/blogging "keyword research"'
+        # High-volume SEO queries
+        'site:reddit.com "keyword research"',
+        'site:reddit.com "SEO tools"',
+        'site:reddit.com "SEO software"',
+        'site:reddit.com "rank tracking"',
+        'site:reddit.com "keyword tracking"',
+        'site:reddit.com "SEO recommendations"',
+        
+        # Question/Content Research
+        'site:reddit.com "how to research keywords"',
+        'site:reddit.com "find content ideas"',
+        'site:reddit.com "content research"',
+        'site:reddit.com "blog topic ideas"',
+        'site:reddit.com "content planning"',
+        
+        # Popular Subreddit Queries
+        'site:reddit.com/r/SEO "tool recommendation"',
+        'site:reddit.com/r/bigseo "tools"',
+        'site:reddit.com/r/Blogging "SEO help"',
+        'site:reddit.com/r/juststart "keyword tools"',
+        'site:reddit.com/r/marketing "SEO software"',
+        
+        # General SEO Help
+        'site:reddit.com "need SEO help"',
+        'site:reddit.com "SEO beginner"',
+        'site:reddit.com "SEO advice"',
+        'site:reddit.com "keyword help"',
+        'site:reddit.com "content strategy help"'
     ]
 
 def get_random_proxy():
@@ -514,7 +574,7 @@ def process_serp_results(reddit, comment_variations):
             seo_comments_since_hobby = 0  # Reset counter
         
         encoded_query = requests.utils.quote(query)
-        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:y"  # Yearly results
+        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:d"  # Yearly results
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
