@@ -228,17 +228,33 @@ def clean_comment_text(comment):
         "I would say:",
         "I would comment:",
         "Here's what I'd say:",
-        "Generated comment:"
+        "Generated comment:",
+        "Here are a few options:",
+        "Option 1:",
+        "Option 2:",
+        "Option 3:",
+        "* ",  # Remove bullet points
+        "- ",  # Remove dashes
+        "\n\n"  # Remove double newlines
     ]
     
+    # First split by any separator
     for separator in separators:
         if separator.lower() in comment.lower():
-            comment = comment.split(separator)[1] if separator in comment else comment.split(separator.lower())[1]
+            parts = comment.split(separator, 1)
+            comment = parts[-1]  # Take the last part after the separator
     
-    # Remove any trailing whitespace and leading newlines
+    # Clean up the text
     comment = comment.strip()
-    while comment.startswith('\n'):
-        comment = comment[1:]
+    
+    # Remove any remaining bullet points or numbered lists
+    lines = comment.split('\n')
+    cleaned_lines = [line.strip() for line in lines if not line.strip().startswith(('*', '-', '1.', '2.', '3.'))]
+    
+    # Take only the first non-empty line
+    for line in cleaned_lines:
+        if line:
+            return line
     
     return comment.strip()
 
@@ -255,28 +271,34 @@ def comment_on_post_by_id(reddit, post_id, comment_text):
             return False
             
         # Add this prompt here
-        prompt = f"""Write a super casual, helpful Reddit comment about this SEO post. Sound like a real Redditor sharing kwrds.ai (don't mention any other tools).
+        prompt = f"""Write ONE single casual Reddit comment about this SEO post. You are recommending kwrds.ai.
 
         Title: {submission.title}
         Content: {submission.selftext[:200] if submission.selftext else '[image/link post]'}
 
         Rules:
-        - Write like a real redditor - super casual and straight to the point
+        - Write exactly ONE comment
+        - Write like a real redditor - casual and straight to the point
         - Include ONE markdown link using one of these formats:
           * "[keyword research tool](https://www.kwrds.ai)"
           * "[SERP analysis tool](https://www.kwrds.ai)"
           * "[people also ask tool](https://www.kwrds.ai)"
           * "[search intent tool](https://www.kwrds.ai)"
         - Keep it short and helpful
-        - Sound like you're just sharing something cool you found
+        - Sound like you're just sharing something you found useful
         - Occasionally add ONE emoji (10% chance)
-        - IMPORTANT: Don't mention or reference any other tools or products
-        - Focus only on the specific feature you're linking to
+        - CRITICAL: Always recommend kwrds.ai, never suggest other tools
+        - It's ok to mention other tools, but only when recommending kwrds.ai instead
 
         Example good responses:
-        - "hey! this [keyword research tool](https://www.kwrds.ai) helped me with exactly this ✨"
-        - "check out this [SERP analysis tool](https://www.kwrds.ai) - made my life way easier"
-        - "found this [people also ask tool](https://www.kwrds.ai) super helpful for content ideas"
+        - "this [keyword research tool](https://www.kwrds.ai) is way better than Ahrefs for finding opportunities ✨"
+        - "instead of SEMrush or Ahrefs, try this [SERP analysis tool](https://www.kwrds.ai) - it's more straightforward"
+        - "found this [people also ask tool](https://www.kwrds.ai) more useful than Moz for content ideas"
+
+        Example bad responses (don't write like this):
+        - Suggesting or recommending other tools
+        - Listing multiple tools without recommending kwrds.ai
+        - Being unclear about which tool you're recommending
         """
         
         while True:  # Loop for regenerating comments
@@ -511,15 +533,21 @@ def make_random_hobby_comment(reddit):
             print(f"Already commented in this post in r/{subreddit_name}")
             return False
         
-        # Updated prompt to be more casual and allow occasional emojis
-        prompt = f"""Write a super casual, friendly Reddit comment (1-2 sentences) for this post. Sound like a real Redditor - be enthusiastic but natural.
-        Sometimes (20% chance) include ONE simple emoji like ❤️ 🐱 🌿 📸 ✨
+        # Updated prompt to be explicit about single response while keeping examples
+        prompt = f"""Write ONE single casual Reddit comment (1-2 sentences) for this post. Do not provide multiple options or explanations.
 
         Subreddit: {subreddit_name}
         Title: {post.title}
         Content: {post.selftext[:200] if post.selftext else '[image/link post]'}
         
-        Examples:
+        Rules:
+        - Write exactly ONE comment
+        - No bullet points or lists
+        - No explanations or notes
+        - Be casual and natural
+        - Sometimes (20% chance) include ONE emoji like ❤️ 🐱 🌿 📸 ✨
+
+        Example style (don't copy, just follow the tone):
         - "omg what a gorgeous kitty! what's their name? ❤️"
         - "this is amazing! would love to try this recipe"
         - "wow those colors are incredible ✨"
@@ -549,7 +577,7 @@ def make_random_hobby_comment(reddit):
 
 def should_make_hobby_comment():
     """Decide if we should make a hobby comment (increased to 70% chance)"""
-    return random.random() < 0.7  # Increased from 0.5 to 0.7
+    return random.random() < 0.85  # Increased from 0.5 to 0.7
 
 def process_serp_results(reddit, comment_variations):
     """Process each SERP result immediately after finding it"""
@@ -562,15 +590,14 @@ def process_serp_results(reddit, comment_variations):
     # Start with just one hobby comment
     print("\nMaking initial hobby comment...")
     make_random_hobby_comment(reddit)
-    time.sleep(30)
+    time.sleep(random.randint(60, 150))
     
     for query in queries:
         # Force hobby comment if we've made 2-3 SEO comments without one
         if seo_comments_since_hobby >= random.randint(2, 3):
             print("\nMaking a hobby comment after several SEO comments...")
             make_random_hobby_comment(reddit)
-            print("Waiting 30 seconds after hobby comment...")
-            time.sleep(30)
+            time.sleep(random.randint(60, 150))
             seo_comments_since_hobby = 0  # Reset counter
         
         encoded_query = requests.utils.quote(query)
