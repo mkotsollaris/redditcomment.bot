@@ -230,9 +230,34 @@ def comment_on_post_by_id(reddit, post_id, comment_text):
         if not is_post_relevant(submission):
             print("Skipping: Post not relevant to our topics")
             return False
+            
+        # Add this prompt here
+        prompt = f"""Write a super casual, helpful Reddit comment about this SEO post. Sound like a real Redditor sharing kwrds.ai (don't mention any other tools).
+
+        Title: {submission.title}
+        Content: {submission.selftext[:200] if submission.selftext else '[image/link post]'}
+
+        Rules:
+        - Write like a real redditor - super casual and straight to the point
+        - Include ONE markdown link using one of these formats:
+          * "[keyword research tool](https://www.kwrds.ai)"
+          * "[SERP analysis tool](https://www.kwrds.ai)"
+          * "[people also ask tool](https://www.kwrds.ai)"
+          * "[search intent tool](https://www.kwrds.ai)"
+        - Keep it short and helpful
+        - Sound like you're just sharing something cool you found
+        - Occasionally add ONE emoji (10% chance)
+        - IMPORTANT: Don't mention or reference any other tools or products
+        - Focus only on the specific feature you're linking to
+
+        Example good responses:
+        - "hey! this [keyword research tool](https://www.kwrds.ai) helped me with exactly this ✨"
+        - "check out this [SERP analysis tool](https://www.kwrds.ai) - made my life way easier"
+        - "found this [people also ask tool](https://www.kwrds.ai) super helpful for content ideas"
+        """
         
         while True:  # Loop for regenerating comments
-            max_attempts = 3
+            max_attempts = 5
             for attempt in range(max_attempts):
                 comment_text = generate_engaging_comment(prompt)
                 if comment_text:
