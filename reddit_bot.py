@@ -166,21 +166,58 @@ def is_post_relevant(submission):
     return is_relevant
 
 def confirm_comment(subreddit, title, comment_text, post_url=None):
-    """Ask for confirmation before posting a comment"""
-    print("\n=== Comment Confirmation ===")
-    print(f"Subreddit: r/{subreddit}")
-    print(f"Post: {title}")
-    if post_url:
-        print(f"URL: https://reddit.com{post_url}")  # Reddit URLs are relative paths
-    print(f"Comment: {comment_text}")
-    print("\nPress 'y' to confirm, any other key to skip: ")
-    
-    confirmation = input().lower()
-    return confirmation == 'y'
+    """Ask for confirmation before posting a comment, with option to regenerate"""
+    while True:
+        print("\n=== Comment Confirmation ===")
+        print(f"Subreddit: r/{subreddit}")
+        print(f"Post: {title}")
+        if post_url:
+            print(f"URL: https://reddit.com{post_url}")
+        print(f"Comment: {comment_text}")
+        print("\nPress 'y' to confirm, 'r' to regenerate, any other key to skip: ")
+        
+        confirmation = input().lower()
+        if confirmation == 'y':
+            return True, comment_text
+        elif confirmation == 'r':
+            print("Regenerating comment...")
+            return False, "regenerate"
+        else:
+            return False, None
 
 def validate_comment_has_link(comment):
     """Check if comment has proper markdown link to kwrds.ai"""
     return '](https://www.kwrds.ai)' in comment
+
+def clean_comment_text(comment):
+    """Clean the comment text by removing explanatory notes and meta-commentary"""
+    # Split on common separators that might indicate explanatory text
+    separators = [
+        "\nThis response",
+        "\nNote:",
+        "\nExplanation:",
+        "\nReasoning:",
+        "This comment",
+        "This response",
+        "Here's a possible comment:",
+        "Here's a comment:",
+        "Possible response:",
+        "I would say:",
+        "I would comment:",
+        "Here's what I'd say:",
+        "Generated comment:"
+    ]
+    
+    for separator in separators:
+        if separator.lower() in comment.lower():
+            comment = comment.split(separator)[1] if separator in comment else comment.split(separator.lower())[1]
+    
+    # Remove any trailing whitespace and leading newlines
+    comment = comment.strip()
+    while comment.startswith('\n'):
+        comment = comment[1:]
+    
+    return comment.strip()
 
 def comment_on_post_by_id(reddit, post_id, comment_text):
     try:
@@ -194,56 +231,37 @@ def comment_on_post_by_id(reddit, post_id, comment_text):
             print("Skipping: Post not relevant to our topics")
             return False
         
-        # Updated prompt to encourage more varied linking
-        prompt = f"""Write a casual, helpful Reddit comment about this SEO post. Include a link to kwrds.ai naturally, as if you're a Redditor sharing a tool you use.
-
-        Title: {submission.title}
-        Content: {submission.selftext[:200] if submission.selftext else '[image/link post]'}
-
-        Rules:
-        - Write like a real Redditor - casual, helpful, straight to the point
-        - Include ONE markdown link using one of these formats (prefer the first three):
-          * "[keyword research tool](https://www.kwrds.ai)"
-          * "[SERP analysis tool](https://www.kwrds.ai)"
-          * "[people also ask tool](https://www.kwrds.ai)"
-          * "[search intent tool](https://www.kwrds.ai)"
-          * Only use "[kwrds.ai](https://www.kwrds.ai)" if it fits more naturally
-        - Be genuinely helpful
-        - Keep it short and direct
-        - Don't oversell or be too formal
-        - Sound like you're sharing from experience
-
-        Example good responses:
-        - "This [keyword research tool](https://www.kwrds.ai) helped me find some good long-tail opportunities."
-        - "The [SERP analysis tool](https://www.kwrds.ai) I use shows all that data in one place."
-        - "Try using a [people also ask tool](https://www.kwrds.ai) to find related topics."
-
-        Example bad responses (don't write like this):
-        - "Allow me to recommend this sophisticated tool..."
-        - "The ultimate solution to all your SEO needs..."
-        - Any overly promotional language
-        """
-        
-        max_attempts = 3
-        for attempt in range(max_attempts):
-            comment_text = generate_engaging_comment(prompt)
-            if comment_text and validate_comment_has_link(comment_text):
-                break
-            print(f"Generated comment missing proper link format, attempt {attempt + 1}/{max_attempts}")
-        
-        if not comment_text or not validate_comment_has_link(comment_text):
-            print("Failed to generate comment with proper link format")
-            return False
+        while True:  # Loop for regenerating comments
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                comment_text = generate_engaging_comment(prompt)
+                if comment_text:
+                    comment_text = clean_comment_text(comment_text)
+                    if validate_comment_has_link(comment_text):
+                        break
+                print(f"Generated comment missing proper link format, attempt {attempt + 1}/{max_attempts}")
             
-        # Ask for confirmation before posting
-        if not confirm_comment(submission.subreddit.display_name, submission.title, comment_text, submission.permalink):
-            print("Comment skipped by user")
-            return False
+            if not comment_text or not validate_comment_has_link(comment_text):
+                print("Failed to generate comment with proper link format")
+                return False
+                
+            # Ask for confirmation with regeneration option
+            confirmed, result = confirm_comment(submission.subreddit.display_name, 
+                                             submission.title, 
+                                             comment_text, 
+                                             submission.permalink)
             
-        submission.reply(comment_text)
-        print(f"Successfully commented on post: {submission.title}")
-        return True
-        
+            if confirmed:
+                submission.reply(comment_text)
+                print(f"Successfully commented on post: {submission.title}")
+                return True
+            elif result == "regenerate":
+                print("Regenerating comment...")
+                continue
+            else:
+                print("Comment skipped by user")
+                return False
+            
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return False
@@ -408,19 +426,28 @@ def make_random_hobby_comment(reddit):
             print(f"Already commented in this post in r/{subreddit_name}")
             return False
         
-        # Generate contextual comment based on post title and content
-        prompt = f"""Write a short, friendly Reddit comment (1-2 sentences) for this post:
+        # Updated prompt to be more casual and allow occasional emojis
+        prompt = f"""Write a super casual, friendly Reddit comment (1-2 sentences) for this post. Sound like a real Redditor - be enthusiastic but natural.
+        Sometimes (20% chance) include ONE simple emoji like ❤️ 🐱 🌿 📸 ✨
+
         Subreddit: {subreddit_name}
         Title: {post.title}
         Content: {post.selftext[:200] if post.selftext else '[image/link post]'}
         
-        Make it casual and engaging, like a real Reddit user. Don't be overly formal or use emojis."""
+        Examples:
+        - "omg what a gorgeous kitty! what's their name? ❤️"
+        - "this is amazing! would love to try this recipe"
+        - "wow those colors are incredible ✨"
+        - "your garden is goals! 🌿"
+        """
         
         comment_text = generate_engaging_comment(prompt)
-        if not comment_text:
+        if comment_text:
+            # Clean the comment before posting
+            comment_text = clean_comment_text(comment_text)
+        else:
             comment_text = random.choice(get_casual_comments())
         
-        # Print info but don't require confirmation
         print("\n=== Hobby Comment Info ===")
         print(f"Subreddit: r/{subreddit_name}")
         print(f"Post: {post.title}")
@@ -445,27 +472,24 @@ def process_serp_results(reddit, comment_variations):
     successful_comments = 0
     total_posts_found = 0
     processed_urls = set()
+    seo_comments_since_hobby = 0  # Track SEO comments since last hobby comment
     
-    # Start with 1-3 hobby comments
-    initial_hobby_comments = random.randint(1, 3)
-    print(f"\nMaking {initial_hobby_comments} initial hobby comments...")
-    for _ in range(initial_hobby_comments):
-        make_random_hobby_comment(reddit)
-        time.sleep(30)
+    # Start with just one hobby comment
+    print("\nMaking initial hobby comment...")
+    make_random_hobby_comment(reddit)
+    time.sleep(30)
     
     for query in queries:
-        # Increased chance for hobby comments between queries
-        if should_make_hobby_comment():
-            # Sometimes make multiple hobby comments
-            num_comments = random.choices([1, 2], weights=[0.7, 0.3])[0]
-            for _ in range(num_comments):
-                print("\nMaking a random hobby comment to look more natural...")
-                make_random_hobby_comment(reddit)
-                print("Waiting 30 seconds after hobby comment...")
-                time.sleep(30)
+        # Force hobby comment if we've made 2-3 SEO comments without one
+        if seo_comments_since_hobby >= random.randint(2, 3):
+            print("\nMaking a hobby comment after several SEO comments...")
+            make_random_hobby_comment(reddit)
+            print("Waiting 30 seconds after hobby comment...")
+            time.sleep(30)
+            seo_comments_since_hobby = 0  # Reset counter
         
         encoded_query = requests.utils.quote(query)
-        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:w"
+        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:y"  # Yearly results
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -479,7 +503,6 @@ def process_serp_results(reddit, comment_variations):
                 print(f"Google URL: {search_url}")
                 print(f"Attempt {attempt + 1} of {max_retries}")
                 
-                # Get random proxy for this request
                 proxies = get_random_proxy()
                 print(f"Using proxy: {proxies['http'].split('@')[1]}")
                 
@@ -494,17 +517,15 @@ def process_serp_results(reddit, comment_variations):
                 if response.status_code != 200:
                     raise Exception(f"Bad status code: {response.status_code}")
                 
-                # If we get here, the request was successful
                 break
                 
             except Exception as e:
                 print(f"Proxy attempt {attempt + 1} failed: {str(e)}")
-                if attempt == max_retries - 1:  # Last attempt
+                if attempt == max_retries - 1:
                     print("All proxy attempts failed, skipping query")
                     continue
-                time.sleep(5)  # Short delay before trying next proxy
+                time.sleep(5)
         else:
-            # If we get here, all retries failed
             continue
             
         try:
@@ -529,7 +550,6 @@ def process_serp_results(reddit, comment_variations):
                     reddit_posts_found += 1
                     clean_url = href.split('/url?q=')[1].split('&')[0] if '/url?q=' in href else href
                     
-                    # Skip if we've already processed this URL
                     if clean_url in processed_urls:
                         print(f"Skipping already processed URL: {clean_url}")
                         continue
@@ -538,7 +558,6 @@ def process_serp_results(reddit, comment_variations):
                     total_posts_found += 1
                     print(f"Found Reddit post: {clean_url}")
                     
-                    # Process the post immediately
                     post_id = extract_post_id_from_url(clean_url)
                     if post_id:
                         print(f"\nProcessing post: {clean_url}")
@@ -546,6 +565,7 @@ def process_serp_results(reddit, comment_variations):
                         if comment_on_post_by_id(reddit, post_id, comment_text):
                             successful_comments += 1
                             comments_this_query += 1
+                            seo_comments_since_hobby += 1  # Increment counter after successful comment
                             print(f"Successfully commented on post {post_id}")
                             time.sleep(10)
             
