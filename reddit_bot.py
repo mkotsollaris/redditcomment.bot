@@ -162,8 +162,8 @@ def is_post_relevant(submission):
     selftext = submission.selftext.lower()
     subreddit = submission.subreddit.display_name.lower()
     
-    # Check subreddit first
-    relevant_subreddits = {'seo', 'bigseo', 'marketing', 'digitalmarketing', 
+    # Check subreddit first (removed 'marketing')
+    relevant_subreddits = {'seo', 'bigseo', 'digitalmarketing', 
                           'contentmarketing', 'blogging', 'entrepreneur', 
                           'smallbusiness', 'startups', 'webmarketing'}
     
@@ -667,118 +667,92 @@ def get_search_queries():
     
     # Add new keyword research variations
     keyword_research_queries = [
-        'site:reddit.com "keyword research"',
-        'site:reddit.com "keyword analysis tools free"',
-        'site:reddit.com "keyword research tools free"',
-        'site:reddit.com "tools for keyword research"',
-        'site:reddit.com "keyword research in seo"',
-        'site:reddit.com "keyword research for youtube"',
-        'site:reddit.com "keyword research and seo"',
-        'site:reddit.com "keyword research google tool"',
-        'site:reddit.com "how do i do keyword research"',
-        'site:reddit.com "how to keyword research"',
-        'site:reddit.com "how to conduct keyword research"',
-        'site:reddit.com "how do keyword research"',
-        'site:reddit.com "how to do keyword research"',
-        'site:reddit.com "how to do keyword analysis"',
-        'site:reddit.com "best tools for keyword research"',
-        'site:reddit.com "semrush keyword research"',
-        'site:reddit.com "keyword research tools seo"',
-        'site:reddit.com "keywords for pinterest"',
-        'site:reddit.com "ahrefs keyword research"'
-    ]
-    
-    # Combine with existing queries
-    return [
-        # New keyword research queries
-        *keyword_research_queries,
-        
-        # Core kwrds.ai features
-        'site:reddit.com "people also ask tool"',
-        'site:reddit.com "people also ask data"',
-        'site:reddit.com "people also search for"',
-        'site:reddit.com "search intent tool"',
-        'site:reddit.com "SERP analysis tool"',
-        
-        # New PAA-specific queries
-        'site:reddit.com "how to find question keywords"',
-        'site:reddit.com "question keyword research"',
-        'site:reddit.com "find user questions"',
-        'site:reddit.com "question based content"',
-        'site:reddit.com "question keyword tool"',
-        
-        # Search Intent focused
-        'site:reddit.com "understand search intent"',
-        'site:reddit.com "search intent analysis"',
-        'site:reddit.com "user intent research"',
-        'site:reddit.com "keyword intent tool"',
-        'site:reddit.com "content intent"',
-        
-        # SERP Features
-        'site:reddit.com "SERP feature analysis"',
-        'site:reddit.com "SERP position tracking"',
-        'site:reddit.com "SERP competition analysis"',
-        'site:reddit.com "featured snippet optimization"',
-        'site:reddit.com "rich results seo"',
-        
-        # Existing Keyword Research
-        'site:reddit.com "keyword research tool"',
-        'site:reddit.com "AI keyword research"',
-        'site:reddit.com "keyword research automation"',
-        'site:reddit.com "best keyword research tool"',
-        'site:reddit.com "keyword difficulty checker"',
-        
-        # Content Strategy
-        'site:reddit.com "content gap analysis"',
-        'site:reddit.com "content research tool"',
-        'site:reddit.com "content optimization tool"',
-        'site:reddit.com "content strategy tool"',
-        'site:reddit.com "content planning tool"',
-        
-        # Specific Subreddits with topic focus
-        'site:reddit.com/r/SEO "question research"',
+        # Specific subreddit queries (excluding r/marketing)
+        'site:reddit.com/r/SEO "keyword research"',
         'site:reddit.com/r/bigseo "search intent"',
         'site:reddit.com/r/contentmarketing "people also ask"',
         'site:reddit.com/r/juststart "keyword research"',
         'site:reddit.com/r/blogging "content research"',
-        'site:reddit.com/r/marketing "SEO tools"',
+        
+        # Core kwrds.ai features
+        'site:reddit.com "people also ask tool" -inurl:marketing',
+        'site:reddit.com "people also ask data" -inurl:marketing',
+        'site:reddit.com "people also search for" -inurl:marketing',
+        'site:reddit.com "search intent tool" -inurl:marketing',
+        'site:reddit.com "SERP analysis tool" -inurl:marketing',
+        
+        # New PAA-specific queries
+        'site:reddit.com "how to find question keywords" -inurl:marketing',
+        'site:reddit.com "question keyword research" -inurl:marketing',
+        'site:reddit.com "find user questions" -inurl:marketing',
+        'site:reddit.com "question based content" -inurl:marketing',
+        'site:reddit.com "question keyword tool" -inurl:marketing',
+        
+        # Search Intent focused
+        'site:reddit.com "understand search intent" -inurl:marketing',
+        'site:reddit.com "search intent analysis" -inurl:marketing',
+        'site:reddit.com "user intent research" -inurl:marketing',
+        'site:reddit.com "keyword intent tool" -inurl:marketing',
+        'site:reddit.com "content intent" -inurl:marketing',
+        
+        # SERP Features
+        'site:reddit.com "SERP feature analysis" -inurl:marketing',
+        'site:reddit.com "SERP position tracking" -inurl:marketing',
+        'site:reddit.com "SERP competition analysis" -inurl:marketing',
+        'site:reddit.com "featured snippet optimization" -inurl:marketing',
+        'site:reddit.com "rich results seo" -inurl:marketing',
+        
+        # Existing Keyword Research
+        'site:reddit.com "keyword research tool" -inurl:marketing',
+        'site:reddit.com "AI keyword research" -inurl:marketing',
+        'site:reddit.com "keyword research automation" -inurl:marketing',
+        'site:reddit.com "best keyword research tool" -inurl:marketing',
+        'site:reddit.com "keyword difficulty checker" -inurl:marketing',
+        
+        # Content Strategy
+        'site:reddit.com "content gap analysis" -inurl:marketing',
+        'site:reddit.com "content research tool" -inurl:marketing',
+        'site:reddit.com "content optimization tool" -inurl:marketing',
+        'site:reddit.com "content strategy tool" -inurl:marketing',
+        'site:reddit.com "content planning tool" -inurl:marketing',
         
         # AI SEO specific
-        'site:reddit.com "AI content optimization"',
-        'site:reddit.com "AI SEO tool"',
-        'site:reddit.com "AI keyword analysis"',
-        'site:reddit.com "machine learning SEO"',
-        'site:reddit.com "AI content research"',
+        'site:reddit.com "AI content optimization" -inurl:marketing',
+        'site:reddit.com "AI SEO tool" -inurl:marketing',
+        'site:reddit.com "AI keyword analysis" -inurl:marketing',
+        'site:reddit.com "machine learning SEO" -inurl:marketing',
+        'site:reddit.com "AI content research" -inurl:marketing',
         
         # High-volume SEO queries
-        'site:reddit.com "keyword research"',
-        'site:reddit.com "SEO tools"',
-        'site:reddit.com "SEO software"',
-        'site:reddit.com "rank tracking"',
-        'site:reddit.com "keyword tracking"',
-        'site:reddit.com "SEO recommendations"',
+        'site:reddit.com "keyword research" -inurl:marketing',
+        'site:reddit.com "SEO tools" -inurl:marketing',
+        'site:reddit.com "SEO software" -inurl:marketing',
+        'site:reddit.com "rank tracking" -inurl:marketing',
+        'site:reddit.com "keyword tracking" -inurl:marketing',
+        'site:reddit.com "SEO recommendations" -inurl:marketing',
         
         # Question/Content Research
-        'site:reddit.com "how to research keywords"',
-        'site:reddit.com "find content ideas"',
-        'site:reddit.com "content research"',
-        'site:reddit.com "blog topic ideas"',
-        'site:reddit.com "content planning"',
+        'site:reddit.com "how to research keywords" -inurl:marketing',
+        'site:reddit.com "find content ideas" -inurl:marketing',
+        'site:reddit.com "content research" -inurl:marketing',
+        'site:reddit.com "blog topic ideas" -inurl:marketing',
+        'site:reddit.com "content planning" -inurl:marketing',
         
-        # Popular Subreddit Queries
+        # Popular Subreddit Queries (excluding r/marketing)
         'site:reddit.com/r/SEO "tool recommendation"',
         'site:reddit.com/r/bigseo "tools"',
         'site:reddit.com/r/Blogging "SEO help"',
         'site:reddit.com/r/juststart "keyword tools"',
-        'site:reddit.com/r/marketing "SEO software"',
         
         # General SEO Help
-        'site:reddit.com "need SEO help"',
-        'site:reddit.com "SEO beginner"',
-        'site:reddit.com "SEO advice"',
-        'site:reddit.com "keyword help"',
-        'site:reddit.com "content strategy help"'
+        'site:reddit.com "need SEO help" -inurl:marketing',
+        'site:reddit.com "SEO beginner" -inurl:marketing',
+        'site:reddit.com "SEO advice" -inurl:marketing',
+        'site:reddit.com "keyword help" -inurl:marketing',
+        'site:reddit.com "content strategy help" -inurl:marketing'
     ]
+    
+    return keyword_research_queries
 
 def get_random_proxy():
     """Get a random proxy from the list and format it properly"""
