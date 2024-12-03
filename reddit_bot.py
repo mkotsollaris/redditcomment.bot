@@ -27,6 +27,66 @@ if not OPENAI_API_KEY:
 openai.api_key = OPENAI_API_KEY
 print(f"Using OpenAI API key: {OPENAI_API_KEY}")
 
+# Add these near the top of the file with other globals
+COMMENT_THRESHOLDS = {
+    # Comment quality thresholds
+    'MIN_SCORE_TO_POST': 40,  # Minimum score required to post a comment (was hardcoded as 40)
+    'PERFECT_SCORE': 70,      # Score considered "perfect" for a comment
+    
+    # Score thresholds for regeneration
+    'MIN_NATURALNESS': 7.5,   # Minimum naturalness score (was 7.5)
+    'MIN_RELEVANCE': 7.0,     # Minimum relevance score (was 7.0)
+    'MIN_TOOL_MENTION': 7.0,  # Minimum tool mention score (was 7.0)
+    'MIN_WEIGHTED_SCORE': 7.5, # Minimum weighted average score (was 7.5)
+    
+    # Timing and frequency
+    'HOBBY_COMMENT_CHANCE': 0.85,  # Chance to make hobby comment (was 0.85)
+    'SEO_COMMENTS_BEFORE_HOBBY': 3, # Max SEO comments before forcing hobby comment (was 2-3)
+    'SLEEP_TIME_MIN': 60,     # Minimum sleep time between comments (was 60)
+    'SLEEP_TIME_MAX': 150,    # Maximum sleep time between comments (was 150)
+}
+
+# Current strict settings
+STRICT_THRESHOLDS = {
+    # Comment quality thresholds
+    'MIN_SCORE_TO_POST': 40,      # Higher bar for posting
+    'PERFECT_SCORE': 70,          # Perfect score benchmark
+    
+    # Score thresholds for regeneration
+    'MIN_NATURALNESS': 7.5,       # Strict naturalness requirement
+    'MIN_RELEVANCE': 7.0,         # Strict relevance requirement
+    'MIN_TOOL_MENTION': 7.0,      # Strict tool mention quality
+    'MIN_WEIGHTED_SCORE': 7.5,    # High weighted score requirement
+    
+    # Timing and frequency
+    'HOBBY_COMMENT_CHANCE': 0.85,  # High chance of hobby comments
+    'SEO_COMMENTS_BEFORE_HOBBY': 3, # Fewer SEO comments before hobby
+    'SLEEP_TIME_MIN': 60,         # Longer minimum wait
+    'SLEEP_TIME_MAX': 150,        # Longer maximum wait
+}
+
+# More lenient settings for frequent commenting
+LENIENT_THRESHOLDS = {
+    # Comment quality thresholds
+    'MIN_SCORE_TO_POST': 25,      # Even lower bar for posting
+    'PERFECT_SCORE': 70,          # Keep same perfect score benchmark
+    
+    # Score thresholds for regeneration
+    'MIN_NATURALNESS': 5.5,       # Even more lenient naturalness
+    'MIN_RELEVANCE': 5.0,         # More lenient relevance
+    'MIN_TOOL_MENTION': 5.0,      # More lenient tool mentions
+    'MIN_WEIGHTED_SCORE': 5.5,    # Lower weighted score requirement
+    
+    # Timing and frequency
+    'HOBBY_COMMENT_CHANCE': 0.5,   # Even lower chance of hobby comments
+    'SEO_COMMENTS_BEFORE_HOBBY': 6, # More SEO comments before hobby
+    'SLEEP_TIME_MIN': 30,         # Keep same timing
+    'SLEEP_TIME_MAX': 90,         # Keep same timing
+}
+
+# Set which configuration to use
+COMMENT_THRESHOLDS = LENIENT_THRESHOLDS  # Using lenient settings for more frequent commenting
+
 @contextmanager
 def timeout(seconds):
     def timeout_handler(signum, frame):
@@ -405,16 +465,16 @@ Write a short, casual response:"""
             
             # Tool mention scoring (max 30 points)
             is_seo_related = any(x in submission.title.lower() or x in submission.selftext.lower() 
-                                for x in ['seo', 'keyword', 'search', 'content', 'ranking'])
+                                for x in ['seo', 'keyword', 'search', 'content', 'ranking', 'blog'])
             
             if raw_mentions == 0:
                 if is_seo_related:
-                    score += 0  # No tool mention in SEO post = no points
+                    score -= 20  # Heavily penalize no tool mention in SEO posts
                 else:
                     score += 15  # No tool mention in non-SEO post = partial points
             elif raw_mentions == linked_mentions and raw_mentions == 1:
                 if is_seo_related:
-                    score += 30  # Perfect - one properly linked mention in SEO post
+                    score += 35  # Increased bonus for proper tool mention in SEO posts
                 else:
                     score += 20  # Linked mention in non-SEO post
             elif raw_mentions == 1:  # Unlinked mention
@@ -461,8 +521,8 @@ Write a short, casual response:"""
             time.sleep(1)
     
     # Return best comment if it meets minimum threshold
-    if best_comment and best_score >= 40:  # Adjust threshold as needed
-        print(f"Using best comment (score: {best_score}/70)")
+    if best_comment and best_score >= COMMENT_THRESHOLDS['MIN_SCORE_TO_POST']:
+        print(f"Using best comment (score: {best_score}/{COMMENT_THRESHOLDS['PERFECT_SCORE']})")
         return best_comment
     
     return None
@@ -560,17 +620,17 @@ def should_regenerate_comment(evaluation: Dict[str, Any]) -> Tuple[bool, str]:
     weights = {
         'naturalness': 0.35,
         'relevance': 0.30,
-        'tool_mention': 0.25,  # Increased weight for tool mentions
+        'tool_mention': 0.25,
         'engagement': 0.10
     }
     
     weighted_score = sum(scores[k] * weights[k] for k in weights)
     
-    # Stricter regeneration triggers
-    if (scores['naturalness'] < 7.5 or  # Increased threshold
-        scores['relevance'] < 7.0 or    # Increased threshold
-        scores['tool_mention'] < 7.0 or  # Added tool mention threshold
-        weighted_score < 7.5):          # Increased threshold
+    # Use configurable thresholds
+    if (scores['naturalness'] < COMMENT_THRESHOLDS['MIN_NATURALNESS'] or
+        scores['relevance'] < COMMENT_THRESHOLDS['MIN_RELEVANCE'] or
+        scores['tool_mention'] < COMMENT_THRESHOLDS['MIN_TOOL_MENTION'] or
+        weighted_score < COMMENT_THRESHOLDS['MIN_WEIGHTED_SCORE']):
         return True, evaluation.get('reason', 'Scores below threshold')
         
     return False, ''
@@ -895,8 +955,8 @@ def make_random_hobby_comment(reddit):
         return False
 
 def should_make_hobby_comment():
-    """Decide if we should make a hobby comment (increased to 70% chance)"""
-    return random.random() < 0.85  # Increased from 0.5 to 0.7
+    """Decide if we should make a hobby comment"""
+    return random.random() < COMMENT_THRESHOLDS['HOBBY_COMMENT_CHANCE']
 
 def process_serp_results(reddit):
     """Process each SERP result immediately after finding it"""
@@ -918,15 +978,18 @@ def process_serp_results(reddit):
     
     for query in queries:
         # Force hobby comment if we've made 2-3 SEO comments without one
-        if seo_comments_since_hobby >= random.randint(2, 3):
+        if seo_comments_since_hobby >= COMMENT_THRESHOLDS['SEO_COMMENTS_BEFORE_HOBBY']:
             print("\nMaking a hobby comment after several SEO comments...")
             make_random_hobby_comment(reddit)
-            sleep_time = random.randint(60, 150)
+            sleep_time = random.randint(
+                COMMENT_THRESHOLDS['SLEEP_TIME_MIN'], 
+                COMMENT_THRESHOLDS['SLEEP_TIME_MAX']
+            )
             time.sleep(sleep_time)
-            seo_comments_since_hobby = 0  # Reset counter
+            seo_comments_since_hobby = 0
         
         encoded_query = requests.utils.quote(query)
-        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:w"
+        search_url = f"https://www.google.com/search?q={encoded_query}&tbs=qdr:d"
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
