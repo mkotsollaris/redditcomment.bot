@@ -130,6 +130,9 @@ def get_search_queries():
         'site:linkedin.com/pulse OR site:linkedin.com/posts "content optimization"'
     ]
     
+    # Shuffle the queries randomly
+    random.shuffle(queries)
+    
     return queries
 
 def get_random_proxy():
@@ -751,9 +754,10 @@ def main():
             page = context.new_page()
             page.set_viewport_size({"width": 1280, "height": 800})
             
-            # Get all search queries
+            # Get all search queries and shuffle them
             queries = get_search_queries()
-            print(f"\nLoaded {len(queries)} search queries")
+            random.shuffle(queries)  # Randomize query order
+            print(f"\nLoaded and shuffled {len(queries)} search queries")
             
             # Process each query
             for query_index, query in enumerate(queries, 1):
