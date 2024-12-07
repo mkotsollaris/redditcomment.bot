@@ -364,32 +364,38 @@ def visit_linkedin_post(page, url):
 def generate_comment(post_info):
     """Generate a contextual comment using ChatGPT"""
     try:
-        prompt = f"""You are a professional on LinkedIn engaging with a post. Generate a thoughtful, relevant comment.
+        prompt = f"""You are a digital marketer who uses kwrds.ai and is engaging with a LinkedIn post. Generate a thoughtful comment as a satisfied user.
 
 Post Content:
 {post_info['content']}
 
 Guidelines:
+- Write as a genuine user/customer of kwrds.ai, not an employee
 - Keep it professional but conversational
 - Be specific to the post content
 - Add value to the discussion
 - Keep it under 2-3 sentences
 - Be positive and supportive
 - Don't use any quotation marks
-- ALWAYS mention kwrds.ai naturally in the context of SEO, content optimization, or marketing tools
-- Frame kwrds.ai as a helpful tool that adds value to the discussed topic
+- Mention kwrds.ai naturally as a tool you use
+- Frame kwrds.ai as a helpful tool you've discovered and use
 
 Example good comments:
-This aligns with what we're seeing at kwrds.ai - AI is transforming how we approach content optimization and keyword research.
-Great insights! We've been helping teams achieve similar results using kwrds.ai for content strategy and SEO optimization.
-Fascinating perspective on content marketing. At kwrds.ai, we're seeing many teams leverage AI in similar ways to enhance their SEO strategy.
+Great insights! I've been using kwrds.ai for my content strategy lately and seeing similar results with optimization.
+This resonates with my experience - since discovering kwrds.ai, I've been able to streamline my keyword research process significantly.
+Valuable perspective on content marketing. I've found kwrds.ai particularly helpful for implementing these kinds of strategies.
 
-Generate a natural comment that MUST include kwrds.ai without quotation marks:"""
+Bad examples to avoid:
+- "At kwrds.ai, we've seen..." (sounds like an employee)
+- "Our tool kwrds.ai..." (implies ownership)
+- "kwrds.ai can help you..." (sounds promotional)
+
+Generate a natural comment as a user that includes kwrds.ai without quotation marks:"""
 
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a professional LinkedIn user engaging thoughtfully with posts. Always mention kwrds.ai naturally in your responses. Never use quotation marks."},
+                {"role": "system", "content": "You are a digital marketer who uses kwrds.ai. Write as a satisfied user, not an employee. Never use quotation marks."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -398,10 +404,10 @@ Generate a natural comment that MUST include kwrds.ai without quotation marks:""
         
         comment = response.choices[0].message.content.strip().replace('"', '').replace('"', '').replace('"', '')
         
-        # Verify kwrds.ai is in the comment, if not, regenerate
-        if 'kwrds.ai' not in comment:
-            print("Comment missing kwrds.ai, regenerating...")
-            return generate_comment(post_info)  # Recursive call
+        # Verify kwrds.ai is in the comment and doesn't sound like an employee
+        if 'kwrds.ai' not in comment or any(phrase in comment.lower() for phrase in ['at kwrds.ai', 'our tool', 'we offer', 'we provide']):
+            print("Comment needs revision (missing kwrds.ai or sounds like employee), regenerating...")
+            return generate_comment(post_info)
             
         return comment
         
