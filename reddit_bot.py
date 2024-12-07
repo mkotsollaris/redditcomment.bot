@@ -85,7 +85,7 @@ LENIENT_THRESHOLDS = {
 }
 
 # Set which configuration to use
-COMMENT_THRESHOLDS = LENIENT_THRESHOLDS  # Using lenient settings for more frequent commenting
+COMMENT_THRESHOLDS = STRICT_THRESHOLDS
 
 @contextmanager
 def timeout(seconds):
