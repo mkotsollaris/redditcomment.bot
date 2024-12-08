@@ -426,6 +426,7 @@ def prepare_comment(post_info):
         
     print(f"✓ Generated initial comment: {comment}")
     
+    return comment
     # Allow for regeneration
     while True:
         choice = input("\nUse this comment? (y)es, (r)egenerate, (m)anual, (s)kip: ").lower()
