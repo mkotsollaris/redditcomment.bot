@@ -519,7 +519,7 @@ def post_comment(page, comment):
         
         # Show what we're about to do
         print(f"About to post comment: {comment}")
-        time.sleep(5)
+        time.sleep(15)
         
         # Switch to Facet account first
         if not switch_to_facet_account(page):
@@ -528,7 +528,7 @@ def post_comment(page, comment):
             
         # Find and click comment box
         print("Looking for comment box...")
-        time.sleep(7)
+        time.sleep(17)
         
         # Try different comment box selectors
         comment_box_selectors = [
@@ -554,7 +554,7 @@ def post_comment(page, comment):
             print("✗ Could not find comment box")
             return False
         
-        time.sleep(2)
+        time.sleep(12)
         
         # Try different input selectors for typing
         input_selectors = [
@@ -577,12 +577,8 @@ def post_comment(page, comment):
             return False
         
         print("✓ Typed comment")
-        
-        # Final confirmation
-        response = input("Comment is ready. Type 'y' to post, or 'n' to cancel: ").lower()
-        if response != 'y':
-            print("Comment posting cancelled")
-            return False
+        print("Will post in 60 seconds...")
+        time.sleep(60)
         
         # Try different post button selectors
         post_button_selectors = [
@@ -675,7 +671,7 @@ def switch_to_facet_account(page):
     try:
         # Click the account switcher button
         print("Looking for account switcher...")
-        time.sleep(5)
+        time.sleep(15)
         # while input("Type 'y' when ready to click account switcher: ").lower() != 'y':
         #     print("Please type 'y' when ready...")
             
@@ -684,13 +680,13 @@ def switch_to_facet_account(page):
         
         # Wait for modal to appear
         print("Waiting for account selection modal...")
-        time.sleep(2)
+        time.sleep(12)
         # while input("Type 'y' when account selection modal is visible: ").lower() != 'y':
         #     print("Please type 'y' when ready...")
         
         # Select Facet account - try multiple methods
         print("Selecting Facet account...")
-        time.sleep(2)
+        time.sleep(12)
         try:
             # First try clicking the entire row
             page.click('div.cursor-pointer:has-text("Facet")')
